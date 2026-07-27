@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import smtplib
 import ssl
+import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from email.message import EmailMessage
@@ -219,3 +222,23 @@ def run(
         save_state(state_path, new_state)
         return True
     return False
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="监控 ggpptt.store 商品库存")
+    parser.add_argument(
+        "--send-test-email",
+        action="store_true",
+        help="发送一封 Gmail 配置测试邮件，不改变库存状态",
+    )
+    arguments = parser.parse_args(argv)
+    try:
+        run(send_test_email=arguments.send_test_email)
+    except MonitorError as error:
+        print(f"监控失败：{error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

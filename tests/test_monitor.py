@@ -5,12 +5,14 @@ import unittest
 from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from monitor import (
     MonitorError,
     Product,
     State,
     load_state,
+    main,
     parse_product,
     run,
     send_email,
@@ -80,6 +82,9 @@ class MonitorRunTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
+        print_patcher = patch("builtins.print")
+        print_patcher.start()
+        self.addCleanup(print_patcher.stop)
         self.state_path = Path(self.temp_dir.name) / "state.json"
         self.state_path.write_text(
             json.dumps(
@@ -252,6 +257,21 @@ class GmailTests(unittest.TestCase):
             ("owner@example.com", "secret-value"),
         )
         self.assertNotIn("secret-value", calls["message"].as_string())
+
+
+class CliTests(unittest.TestCase):
+    def test_main_returns_one_for_monitor_error(self) -> None:
+        with (
+            patch("builtins.print"),
+            patch("monitor.run", side_effect=MonitorError("测试错误")),
+        ):
+            self.assertEqual(main([]), 1)
+
+    def test_main_forwards_test_email_flag(self) -> None:
+        with patch("monitor.run", return_value=False) as run_mock:
+            self.assertEqual(main(["--send-test-email"]), 0)
+
+        run_mock.assert_called_once_with(send_test_email=True)
 
 
 if __name__ == "__main__":
