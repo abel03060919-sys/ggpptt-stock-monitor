@@ -1,5 +1,6 @@
 name: Stock monitor
 
+# Monitor product 68 every five minutes.
 on:
   schedule:
     - cron: "2-57/5 * * * *"
